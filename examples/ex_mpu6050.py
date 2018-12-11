@@ -13,13 +13,17 @@ RAD_TO_DEG = 180 / pi
 DEG_TO_RAD = pi / 180
 
 dt = 0.01
-x0 = matrix([[0], [0]])
-A = matrix([[1, -dt], [0, 1]])
-B = matrix([[dt], [0]])
-P = matrix([[0, 0], [0, 0]])
-H = matrix([[1, 0]])
-Q0 = matrix([[0.001, 0], [0, 0.003]])
-R=0.03
+
+# angle = angle0 + (newVelocity - bias)*dt
+# bias  = bias
+
+x0 = matrix([[0], [0]])  # vetor de estados
+A = matrix([[1, -dt], [0, 1]])  # matriz de transição de estados
+B = matrix([[dt], [0]]) # matriz de entradas de controle
+P = matrix([[0, 0], [0, 0]]) # matriz de covariância
+H = matrix([[1, 0]]) # modelo de observação
+Q0 = matrix([[0.001, 0], [0, 0.003]]) # covariância do ruído do processo
+R=0.03 # covariância do ruído da observação
 
 #kalman_pitch = Kalman(A,x0,B,H,Q0,R,P)
 kalman_roll = Kalman(A,x0,B,H,Q0,R,P)
@@ -30,7 +34,7 @@ def getAccelRollPitch(ax, ay, az):
     pitch = atan(-ay / sqrt(ax * ax + az * az)) * RAD_TO_DEG
     return [roll, pitch]
 
-def plotValues():
+def plotValues(): # plotar dados
     plt.title('mpu6050')
     plt.ylabel('Angulo')
     plt.ylim(-100, 100)
@@ -50,10 +54,10 @@ t = 0
 while True:
     try:
        cnt += 1
-       data = ser.readline()
+       data = ser.readline() # obter os dados pela serial
        data = data.strip()
 
-       [ax, ay, az, gx, gy, gz] = data.split(',')
+       [ax, ay, az, gx, gy, gz] = data.split(',') # separar os dados
        [ax, ay, az, gx, gy, gz] = [float(ax),float(ay),float(az),float(gx),float(gy),float(gz)]
        print(ax,ay,az)
 
@@ -61,21 +65,21 @@ while True:
        dt = t1 - t0
        t0 = t1
 
-       A = matrix([[1, -dt], [0, 1]])
-       B = matrix([[dt], [0]])
+       A = matrix([[1, -dt], [0, 1]]) # atualizar matriz de transição de estados
+       B = matrix([[dt], [0]]) # atualizar matriz de entradas de controle
        kalman_roll.setA(A)
        kalman_roll.setB(B)
-       kalman_roll.setQ(Q0*dt)
+       kalman_roll.setQ(Q0*dt) # atualizar covariância do ruído do processo
 
        roll, pitch = getAccelRollPitch(ax, ay, az)
-       k_roll = kalman_roll.compute(-gy, roll).item(0)
+       k_roll = kalman_roll.compute(-gy, roll).item(0) # filtrar o angulo usando a aceleração e a velocidade angular
 
        print(roll, k_roll)
        data_raw.append(roll)
        data_raw.pop(0)
        data_kalman.append(k_roll)
        data_kalman.pop(0)
-       drawnow(plotValues)
+       drawnow(plotValues) # plotar dados
     except Exception as ex:
        print(str(ex))
 
